@@ -38,9 +38,16 @@ fi
 OUT_NAME="$(basename "$TARGET")-processes.html"
 OUT_PATH="$TARGET/$OUT_NAME"
 
-# template.html содержит только init-скрипт (window.mermaid.initialize/run);
-# саму библиотеку mermaid.min.js нужно инлайнить перед ним, иначе `mermaid`
-# не определён и диаграммы остаются сырым текстом внутри <pre>.
+if [ -f "$OUT_PATH" ]; then
+  BACKUP_PATH="$OUT_PATH.bak"
+  cp "$OUT_PATH" "$BACKUP_PATH"
+  echo "Найден существующий файл — сохранена копия: $BACKUP_PATH"
+fi
+
+# template.html — полный HTML-документ, но содержит только init-скрипт
+# (window.mermaid.initialize/run) в конце body; саму библиотеку mermaid.min.js
+# нужно инлайнить перед ним, иначе `mermaid` не определён и диаграммы
+# остаются сырым текстом внутри <pre>.
 python3 - "$SCRIPT_DIR/template.html" "$SCRIPT_DIR/mermaid.min.js" "$OUT_PATH" << 'PYEOF'
 import sys
 from pathlib import Path
