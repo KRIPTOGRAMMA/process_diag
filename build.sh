@@ -2,22 +2,38 @@
 # process_diag — построить визуальную карту процессов (flowchart + ER) из графа graphify.
 #
 # Использование:
-#   ./build.sh <путь-к-проекту>
+#   ./build.sh <путь-к-проекту>                             # для агента (см. INSTRUCTIONS.md)
+#   ./build.sh <путь-к-проекту> --model <gemini-*|claude-*>  # автономно, через LLM API
 #
 # Требует, чтобы в <путь-к-проекту>/graphify-out/graph.json уже лежал построенный
 # граф (запустить `/graphify <путь-к-проекту>` в Claude Code, если его ещё нет).
 #
-# Сам этот скрипт ничего не генерирует автоматически — он проверяет предпосылки
-# и печатает инструкцию для агента (см. INSTRUCTIONS.md), который читает graph.json
-# и заполняет template.html осмысленными диаграммами.
+# Без --model скрипт только проверяет предпосылки и печатает инструкцию для
+# агента (см. INSTRUCTIONS.md), который читает graph.json и заполняет
+# template.html осмысленными диаграммами. С --model дополнительно вызывает
+# generate.py, который делает то же самое сам через API (см. README.md).
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET="${1:-}"
+TARGET=""
+MODEL=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --model)
+      MODEL="${2:-}"
+      shift 2
+      ;;
+    *)
+      TARGET="$1"
+      shift
+      ;;
+  esac
+done
 
 if [ -z "$TARGET" ]; then
-  echo "Использование: ./build.sh <путь-к-проекту>"
+  echo "Использование: ./build.sh <путь-к-проекту> [--model <gemini-*|claude-*>]"
   exit 1
 fi
 
@@ -69,9 +85,17 @@ PYEOF
 echo "Шаблон собран (с инлайн mermaid.js): $OUT_PATH"
 echo "Граф найден: $GRAPH_JSON"
 [ -f "$GRAPH_REPORT" ] && echo "Отчёт найден: $GRAPH_REPORT"
-echo ""
-echo "Дальше — задача для агента (LLM), не для этого скрипта:"
-echo "прочитать $SCRIPT_DIR/INSTRUCTIONS.md и заполнить $OUT_PATH"
-echo "диаграммами на основе graph.json / GRAPH_REPORT.md."
-echo ""
-echo "В Claude Code это делает skill: /process-diag $TARGET"
+
+if [ -n "$MODEL" ]; then
+  echo ""
+  echo "Автономный режим: заполняю $OUT_PATH через модель $MODEL..."
+  python3 "$SCRIPT_DIR/generate.py" "$TARGET" --model "$MODEL"
+else
+  echo ""
+  echo "Дальше — задача для агента (LLM), не для этого скрипта:"
+  echo "прочитать $SCRIPT_DIR/INSTRUCTIONS.md и заполнить $OUT_PATH"
+  echo "диаграммами на основе graph.json / GRAPH_REPORT.md."
+  echo ""
+  echo "В Claude Code это делает skill: /process-diag $TARGET"
+  echo "Либо автономно (без агента): ./build.sh $TARGET --model <gemini-*|claude-*>"
+fi
