@@ -90,6 +90,10 @@ if [ -n "$MODEL" ]; then
   echo ""
   echo "Автономный режим: заполняю $OUT_PATH через модель $MODEL..."
   python3 "$SCRIPT_DIR/generate.py" "$TARGET" --model "$MODEL"
+
+  echo ""
+  echo "Проверка полноты заполнения..."
+  "$SCRIPT_DIR/check_output.sh" "$OUT_PATH"
 else
   echo ""
   echo "Дальше — задача для агента (LLM), не для этого скрипта:"
@@ -98,4 +102,8 @@ else
   echo ""
   echo "В Claude Code это делает skill: /process-diag $TARGET"
   echo "Либо автономно (без агента): ./build.sh $TARGET --model <gemini-*|claude-*>"
+  echo ""
+  echo "ВАЖНО: после заполнения агент обязан запустить перед сдачей:"
+  echo "  $SCRIPT_DIR/check_output.sh $OUT_PATH"
+  echo "Это не опционально — см. Шаг 5 в INSTRUCTIONS.md."
 fi
